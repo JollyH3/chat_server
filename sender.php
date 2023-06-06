@@ -4,7 +4,6 @@ require 'admin/function.php';
 
 $serverSocket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
 socket_bind($serverSocket, "0.0.0.0", 10688);
-socket_listen($serverSocket);
 
 
 function handleClient($clientId, $clientSocket, &$activeConnections) {
@@ -34,8 +33,9 @@ function handleClient($clientId, $clientSocket, &$activeConnections) {
             $pdo->query('set profiling=1');
 
 
-            $stmt = $pdo->prepare("INSERT IGNORE INTO message VALUES(:sender_id, :recipient_id, :message_text);");
+            $stmt = $pdo->prepare("INSERT IGNORE INTO message VALUES(:message_id, :sender_id, :recipient_id, :message_text);");
             if (!$stmt->execute([
+                'message_id' => hash_hmac("sha256", uniqid(), "message_id"),
                 'sender_id' => $sender_id,
                 'recipient_id' => $recipient_id,
                 'message_text' => $message_text,
@@ -86,7 +86,6 @@ while (true) {
         // Processo filgio: gestisce il client.
         handleClient($clientId, $newClientSocket, $activeConnections);
 
-        socket_shutdown($newClientSocket, 2);
         socket_close($newClientSocket);
         exit();
     }
